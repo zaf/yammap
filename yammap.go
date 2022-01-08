@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"reflect"
 	"runtime"
 	"sync"
 	"unsafe"
@@ -21,9 +20,8 @@ type Mmap struct {
 	data   []byte
 }
 
-var (
-	pageSize int
-)
+// pageSize is the size of a page in the system.
+var pageSize int
 
 const (
 	SEEK_START   int = 0 // seek relative to the origin of the file
@@ -216,20 +214,11 @@ func (m *Mmap) Truncate(size int64) error {
 	return err
 }
 
-// Make sure we allways align to page boundries
-func align(size int64) int64 {
-	var aligned int64
-	if size == 0 {
-		aligned = int64(pageSize)
-	} else if (size % int64(pageSize)) != 0 {
-		aligned = (size/int64(pageSize) + 1) * int64(pageSize)
-	} else {
-		aligned = size
-	}
-	if aligned > maxSize {
-		aligned = maxSize
-	}
-	return aligned
+// slice is the runtime representation of a Go slice.
+type slice struct {
+	Data unsafe.Pointer
+	Len  int
+	Cap  int
 }
 
 // Map file to memory
@@ -252,8 +241,8 @@ func (m *Mmap) fileMap(f *os.File) error {
 	if errno != 0 {
 		return fmt.Errorf("mmap failed with errno: %v", err)
 	}
-	header := (*reflect.SliceHeader)(unsafe.Pointer(&m.data))
-	header.Data = mmapAddr
+	header := (*slice)(unsafe.Pointer(&m.data))
+	header.Data = unsafe.Pointer(mmapAddr)
 	header.Cap = int(size)
 	header.Len = int(size)
 	runtime.KeepAlive(mmapAddr)
@@ -263,10 +252,10 @@ func (m *Mmap) fileMap(f *os.File) error {
 // Use mremap to increase the size of allocated memory
 func (m *Mmap) mremap(size int64) error {
 	size = align(size)
-	header := (*reflect.SliceHeader)(unsafe.Pointer(&m.data))
+	header := (*slice)(unsafe.Pointer(&m.data))
 	mmapAddr, mmapSize, err := unix.Syscall6(
 		unix.SYS_MREMAP,
-		header.Data,
+		uintptr(header.Data),
 		uintptr(header.Len),
 		uintptr(size),
 		uintptr(MREMAP_MAYMOVE),
@@ -279,9 +268,25 @@ func (m *Mmap) mremap(size int64) error {
 	if mmapSize != uintptr(size) {
 		return fmt.Errorf("mremap size mismatch: requested: %d got: %d", size, mmapSize)
 	}
-	header.Data = mmapAddr
+	header.Data = unsafe.Pointer(mmapAddr)
 	header.Cap = int(size)
 	header.Len = int(size)
 	runtime.KeepAlive(mmapAddr)
 	return nil
+}
+
+// Align to page boundries
+func align(size int64) int64 {
+	var aligned int64
+	if size == 0 {
+		aligned = int64(pageSize)
+	} else if (size % int64(pageSize)) != 0 {
+		aligned = (size/int64(pageSize) + 1) * int64(pageSize)
+	} else {
+		aligned = size
+	}
+	if aligned > maxSize {
+		aligned = maxSize
+	}
+	return aligned
 }
