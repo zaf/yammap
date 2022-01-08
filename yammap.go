@@ -1,3 +1,14 @@
+/*
+	Copyright (C) 2022, Lefteris Zafiris <zaf@fastmail.com>
+	This program is free software, distributed under the terms of
+	the GNU GPL v3 License. See the LICENSE file
+	at the top of the source tree.
+*/
+
+/*
+Package yammap provides an interface to memory mapped files.
+*/
+
 package yammap
 
 import (
@@ -12,7 +23,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Mmap holds our in-memory data
+// Mmap holds our in-memory file data
 type Mmap struct {
 	sync.RWMutex
 	fd     *os.File
