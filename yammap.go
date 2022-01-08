@@ -40,7 +40,7 @@ func init() {
 
 // Create returns a new memory-mapped file.
 func Create(name string) (*Mmap, error) {
-	f, err := os.Create(name)
+	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func Create(name string) (*Mmap, error) {
 
 // Open opens the named file as memmory-mapped.
 func Open(name string) (*Mmap, error) {
-	f, err := os.Open(name)
+	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return nil, err
 	}
@@ -238,8 +238,10 @@ func (m *Mmap) fileMap(f *os.File) error {
 // Make sure we allways align to page boundries
 func align(size int64) int64 {
 	var aligned int64
-	if (size % int64(pageSize)) != 0 {
-		aligned = (size / int64(pageSize+1) * int64(pageSize))
+	if size == 0 {
+		aligned = int64(pageSize)
+	} else if (size % int64(pageSize)) != 0 {
+		aligned = (size/int64(pageSize) + 1) * int64(pageSize)
 	} else {
 		aligned = size
 	}
