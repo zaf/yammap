@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"runtime"
 	"sync"
 	"unsafe"
 
@@ -16,7 +17,7 @@ import (
 type Mmap struct {
 	sync.RWMutex
 	fd     *os.File
-	offset int64 // read and write offsets
+	offset int64
 	data   []byte
 }
 
@@ -38,24 +39,9 @@ func init() {
 	pageSize = unix.Getpagesize()
 }
 
-// Create returns a new memory-mapped file.
-func Create(name string) (*Mmap, error) {
-	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		return nil, err
-	}
-	m := new(Mmap)
-	err = m.fileMap(f)
-	if err != nil {
-		f.Close()
-		return nil, err
-	}
-	return m, nil
-}
-
-// Open opens the named file as memmory-mapped.
-func Open(name string) (*Mmap, error) {
-	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0644)
+// Open opens or creates the named file as memmory-mapped.
+func OpenFile(name string, flag int, perm os.FileMode) (*Mmap, error) {
+	f, err := os.OpenFile(name, flag, perm)
 	if err != nil {
 		return nil, err
 	}
@@ -69,27 +55,30 @@ func Open(name string) (*Mmap, error) {
 }
 
 // Close closes the memory-mapped file, rendering it unusable for I/O.
-func (m *Mmap) Close() error {
+func (m *Mmap) Close() (err error) {
 	m.Lock()
-	err := unix.Munmap(m.data)
-	if err != nil {
-		m.Unlock()
-		return err
+	defer m.Unlock()
+	addr := unsafe.Pointer(&m.data[0])
+	_, _, errno := unix.Syscall(unix.SYS_MUNMAP, uintptr(addr), uintptr(len(m.data)), 0)
+	if errno != 0 {
+		err = fmt.Errorf("SYS_MUNMAP: %v", errno)
 	}
 	err = m.fd.Close()
 	if err != nil {
-		m.Unlock()
 		return err
 	}
-	m.Unlock()
 	m = nil
 	return err
 }
 
-// Sync commits the current contents of the file to stable storage.
-func (m *Mmap) Sync() error {
+// Sync flushes changes made to a file that was mapped into memory using mmap back to the filesystem.
+func (m *Mmap) Sync() (err error) {
 	m.Lock()
-	err := unix.Msync(m.data, unix.MS_SYNC)
+	addr := unsafe.Pointer(&m.data[0])
+	_, _, errno := unix.Syscall(unix.SYS_MSYNC, uintptr(addr), uintptr(len(m.data)), uintptr(unix.MS_SYNC))
+	if errno != 0 {
+		err = fmt.Errorf("SYS_MSYNC: %v", errno)
+	}
 	m.Unlock()
 	return err
 }
@@ -98,12 +87,12 @@ func (m *Mmap) Sync() error {
 // At end of file, Read returns 0, io.EOF.
 func (m *Mmap) Read(b []byte) (n int, err error) {
 	m.Lock()
+	defer m.Unlock()
 	if m.offset >= int64(len(m.data)) {
 		return n, io.EOF
 	}
 	n = copy(b, m.data[m.offset:])
 	m.offset += int64(n)
-	m.Unlock()
 	return n, nil
 }
 
@@ -182,6 +171,8 @@ func (m *Mmap) Write(b []byte) (n int, err error) {
 			return 0, err
 		}
 	}
+	m.fd.Seek(m.offset+int64(len(b)-1), SEEK_START)
+	m.fd.Write([]byte("\x00"))
 	n = copy(m.data[m.offset:], b)
 	m.offset += int64(n)
 	m.Unlock()
@@ -202,6 +193,8 @@ func (m *Mmap) WriteAt(b []byte, off int64) (n int, err error) {
 			return 0, err
 		}
 	}
+	m.fd.Seek(off+int64(len(b)-1), SEEK_START)
+	m.fd.Write([]byte("\x00"))
 	n = copy(m.data[off:], b)
 	m.Unlock()
 	if n != len(b) {
@@ -223,18 +216,6 @@ func (m *Mmap) Truncate(size int64) error {
 	return err
 }
 
-// Map file to memory
-func (m *Mmap) fileMap(f *os.File) error {
-	m.fd = f
-	stat, err := f.Stat()
-	if err != nil {
-		return err
-	}
-	size := align(stat.Size())
-	m.data, err = unix.Mmap(int(f.Fd()), int64(m.offset), int(size), unix.PROT_READ|unix.PROT_WRITE, unix.MAP_SHARED)
-	return err
-}
-
 // Make sure we allways align to page boundries
 func align(size int64) int64 {
 	var aligned int64
@@ -251,13 +232,39 @@ func align(size int64) int64 {
 	return aligned
 }
 
+// Map file to memory
+func (m *Mmap) fileMap(f *os.File) error {
+	m.fd = f
+	stat, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	size := align(stat.Size())
+	mmapAddr, _, errno := unix.Syscall6(
+		unix.SYS_MMAP,
+		0,
+		uintptr(size),
+		unix.PROT_READ|unix.PROT_WRITE,
+		unix.MAP_SHARED,
+		uintptr(f.Fd()),
+		0,
+	)
+	if errno != 0 {
+		return fmt.Errorf("mmap failed with errno: %v", err)
+	}
+	header := (*reflect.SliceHeader)(unsafe.Pointer(&m.data))
+	header.Data = mmapAddr
+	header.Cap = int(size)
+	header.Len = int(size)
+	runtime.KeepAlive(mmapAddr)
+	return err
+}
+
 // Use mremap to increase the size of allocated memory
 func (m *Mmap) mremap(size int64) error {
-	m.Lock()
-	defer m.Unlock()
 	size = align(size)
 	header := (*reflect.SliceHeader)(unsafe.Pointer(&m.data))
-	mmapAddr, mmapSize, errno := unix.Syscall6(
+	mmapAddr, mmapSize, err := unix.Syscall6(
 		unix.SYS_MREMAP,
 		header.Data,
 		uintptr(header.Len),
@@ -266,8 +273,8 @@ func (m *Mmap) mremap(size int64) error {
 		0,
 		0,
 	)
-	if errno != 0 {
-		return fmt.Errorf("mremap failed with errno: %s", errno)
+	if err != 0 {
+		return fmt.Errorf("mremap failed with errno: %v", err)
 	}
 	if mmapSize != uintptr(size) {
 		return fmt.Errorf("mremap size mismatch: requested: %d got: %d", size, mmapSize)
@@ -275,5 +282,6 @@ func (m *Mmap) mremap(size int64) error {
 	header.Data = mmapAddr
 	header.Cap = int(size)
 	header.Len = int(size)
+	runtime.KeepAlive(mmapAddr)
 	return nil
 }
