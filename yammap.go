@@ -49,8 +49,10 @@ const (
 	PROT_READ  = 0x1 // page can be read
 	PROT_WRITE = 0x2 // page can be written
 
-	MAP_SHARED  = 0x01 // share changes
-	MAP_PRIVATE = 0x02 // changes are private
+	MAP_SHARED   = 0x01 // share changes
+	MAP_PRIVATE  = 0x02 // changes are private
+	MAP_LOCKED   = 0x2000
+	MAP_POPULATE = 0x8000
 
 	MREMAP_MAYMOVE   = 0x1 // may move the mapping
 	MREMAP_FIXED     = 0x2 // map at a fixed address
@@ -80,6 +82,22 @@ func OpenFile(name string, flag int, perm uint32) (*Mmap, error) {
 		return nil, err
 	}
 	err = m.mmap(stat.Size(), flag)
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	return m, nil
+}
+
+// Create creates the named file of specified size as memmory-mapped.
+func Create(name string, size int64, flag int, perm uint32) (*Mmap, error) {
+	f, err := os.OpenFile(name, flag, os.FileMode(perm))
+	if err != nil {
+		return nil, err
+	}
+	m := new(Mmap)
+	m.fd = f
+	err = m.mmap(size, flag)
 	if err != nil {
 		f.Close()
 		return nil, err
@@ -198,7 +216,7 @@ func (m *Mmap) Seek(offset int64, whence int) (int64, error) {
 func (m *Mmap) Write(b []byte) (n int, err error) {
 	m.Lock()
 	if m.offset+int64(len(b)) > int64(len(m.data)) {
-		err = m.mremap(m.offset + int64(len(b)))
+		err = m.mremap(int64(len(m.data) * 2))
 		if err != nil {
 			m.Unlock()
 			return 0, err
@@ -218,7 +236,7 @@ func (m *Mmap) Write(b []byte) (n int, err error) {
 func (m *Mmap) WriteAt(b []byte, off int64) (n int, err error) {
 	m.Lock()
 	if off+int64(len(b)) > int64(len(m.data)) {
-		err = m.mremap(off + int64(len(b)))
+		err = m.mremap(int64(len(b) * 2))
 		if err != nil {
 			m.Unlock()
 			return 0, err
@@ -251,7 +269,7 @@ type slice struct {
 func (m *Mmap) mmap(size int64, flag int) error {
 	size = align(size)
 	var protection int
-	mapping := MAP_SHARED
+	mapping := MAP_SHARED | MAP_LOCKED | MAP_POPULATE
 	if flag&O_WRONLY != 0 {
 		protection = PROT_WRITE
 	} else if flag&O_RDWR != 0 {
