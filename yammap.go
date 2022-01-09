@@ -283,7 +283,7 @@ func (m *Mmap) mmap(size int64, flag int) error {
 		uintptr(size),
 		uintptr(protection),
 		uintptr(mapping),
-		uintptr(m.fd.Fd()),
+		m.fd.Fd(),
 		0,
 	)
 	if errno != 0 {

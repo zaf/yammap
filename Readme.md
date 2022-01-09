@@ -4,6 +4,9 @@ Package yammap provides an interface to memory mapped files.
 
 WIP - Don't use in production
 
+
+[![GoDoc](https://img.shields.io/badge/pkg.go.dev-doc-blue)](http://pkg.go.dev/.)
+
 ## Constants
 
 ```golang

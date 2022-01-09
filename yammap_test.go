@@ -44,16 +44,16 @@ func TestOpenFile(t *testing.T) {
 	name := tmpname()
 	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	m.Close()
 	defer os.Remove(name)
 	f, err := os.Stat(name)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if f.Size() != int64(pageSize) {
-		t.Error("wrong size of created file")
+		t.Fatal("wrong size of created file")
 	}
 }
 
@@ -61,16 +61,16 @@ func TestCreate(t *testing.T) {
 	name := tmpname()
 	m, err := Create(name, int64(pageSize), O_RDWR|O_CREATE, 0644)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	m.Close()
 	defer os.Remove(name)
 	f, err := os.Stat(name)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if f.Size() != int64(pageSize) {
-		t.Error("wrong size of created file")
+		t.Fatal("wrong size of created file")
 	}
 }
 
@@ -78,21 +78,21 @@ func TestTurncate(t *testing.T) {
 	name := tmpname()
 	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer m.Close()
 	defer os.Remove(name)
 	newsize := int64(16384)
 	err = m.Truncate(newsize)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if newsize != m.Size() {
 		t.Error("wrong size")
 	}
 	err = m.Close()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 }
 
@@ -100,7 +100,7 @@ func TestName(t *testing.T) {
 	name := tmpname()
 	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer m.Close()
 	defer os.Remove(name)
@@ -113,14 +113,14 @@ func TestSeek(t *testing.T) {
 	name := tmpname()
 	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer m.Close()
 	defer os.Remove(name)
 	var position int64 = 1024
 	_, err = m.Seek(position, SEEK_START)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if position != m.Offset() {
 		t.Error("wrong offset")
@@ -128,7 +128,7 @@ func TestSeek(t *testing.T) {
 	current := m.Offset()
 	_, err = m.Seek(position, SEEK_CURRENT)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if current+position != m.Offset() {
 		t.Error("wrong offset")
@@ -136,7 +136,7 @@ func TestSeek(t *testing.T) {
 	position = -position
 	_, err = m.Seek(position, SEEK_END)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if m.Size()+position != m.Offset() {
 		t.Error("wrong offset")
@@ -155,13 +155,13 @@ func TestReadWrite(t *testing.T) {
 	name := tmpname()
 	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer os.Remove(name)
 	msg := rndmessage(pageSize * 2)
 	n, err := m.Write(msg)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if n != len(msg) {
 		t.Error("wrong number of bytes written")
@@ -171,20 +171,20 @@ func TestReadWrite(t *testing.T) {
 	}
 	err = m.Sync()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	err = m.Close()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	m2, err := OpenFile(name, O_RDONLY, 0644)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	b := make([]byte, len(msg))
 	n, err = m2.Read(b)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if n != len(b) {
 		t.Error("wrong number of bytes read")
@@ -194,7 +194,7 @@ func TestReadWrite(t *testing.T) {
 	}
 	err = m2.Close()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if bytes.Compare(b, msg) != 0 {
 		t.Error("wrong data read")
@@ -206,40 +206,40 @@ func TestReadAtWriteAt(t *testing.T) {
 	offset := int64(512)
 	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer os.Remove(name)
 	msg := rndmessage(pageSize * 2)
 	n, err := m.WriteAt([]byte(msg), offset)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if n != len(msg) {
 		t.Error("wrong number of bytes written")
 	}
 	err = m.Sync()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	err = m.Close()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	m2, err := OpenFile(name, O_RDONLY, 0644)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	b := make([]byte, len(msg))
 	n, err = m2.ReadAt(b, offset)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if n != len(b) {
 		t.Error("wrong number of bytes read")
 	}
 	err = m2.Close()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if bytes.Compare(b, msg) != 0 {
 		t.Error("wrong data read")
