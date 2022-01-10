@@ -20,6 +20,17 @@ import (
 	"time"
 )
 
+const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+// Generate random data
+func rndmessage(size int) []byte {
+	b := make([]byte, size)
+	for i := range b {
+		b[i] = chars[rand.Intn(len(chars))]
+	}
+	return b
+}
+
 // Generate random temp names
 func tmpname() string {
 	prefix := "yammap_test_"
@@ -29,15 +40,26 @@ func tmpname() string {
 	return dir + "/" + prefix + strconv.Itoa(int(1e9 + rand%1e9))[1:]
 }
 
-const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-// random data generator
-func rndmessage(n int) []byte {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = chars[rand.Intn(len(chars))]
+// Generate files with random data
+func rndfile(size int) (string, error) {
+	name := tmpname()
+	m, err := Create(name, int64(size), O_RDWR|O_CREATE, 0644)
+	if err != nil {
+		return "", err
 	}
-	return b
+	defer m.Close()
+	msg := rndmessage(size)
+	_, err = m.Write(msg)
+	if err != nil {
+		os.Remove(name)
+		return "", err
+	}
+	err = m.Sync()
+	if err != nil {
+		os.Remove(name)
+		return "", err
+	}
+	return name, nil
 }
 
 func TestOpenFile(t *testing.T) {
@@ -118,7 +140,7 @@ func TestSeek(t *testing.T) {
 	defer m.Close()
 	defer os.Remove(name)
 	var position int64 = 1024
-	_, err = m.Seek(position, SEEK_START)
+	_, err = m.Seek(position, SEEK_SET)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +148,7 @@ func TestSeek(t *testing.T) {
 		t.Error("wrong offset")
 	}
 	current := m.Offset()
-	_, err = m.Seek(position, SEEK_CURRENT)
+	_, err = m.Seek(position, SEEK_CUR)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +167,7 @@ func TestSeek(t *testing.T) {
 	if err.Error() != "offset goes beyond the end of file" {
 		t.Error("allowed to seek beyond the end of file")
 	}
-	_, err = m.Seek(-1024, SEEK_START)
+	_, err = m.Seek(-1024, SEEK_SET)
 	if err.Error() != "negative position" {
 		t.Error("allowed to seek with negative position")
 	}
@@ -196,7 +218,7 @@ func TestReadWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Compare(b, msg) != 0 {
+	if !bytes.Equal(b, msg) {
 		t.Error("wrong data read")
 	}
 }
@@ -241,12 +263,13 @@ func TestReadAtWriteAt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Compare(b, msg) != 0 {
+	if !bytes.Equal(b, msg) {
 		t.Error("wrong data read")
 	}
 }
 
 func BenchmarkWrite(b *testing.B) {
+	testSize := pageSize / 8
 	name := tmpname()
 	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
 	if err != nil {
@@ -254,7 +277,7 @@ func BenchmarkWrite(b *testing.B) {
 	}
 	defer m.Close()
 	defer os.Remove(name)
-	data := rndmessage(512)
+	data := rndmessage(testSize)
 	b.SetBytes(int64(len(data)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -262,7 +285,8 @@ func BenchmarkWrite(b *testing.B) {
 	}
 }
 
-func BenchmarkOsWrite(b *testing.B) {
+func BenchmarkOSWrite(b *testing.B) {
+	testSize := pageSize / 8
 	name := tmpname()
 	f, err := os.OpenFile(name, O_RDWR|O_CREATE, 0644)
 	if err != nil {
@@ -270,10 +294,50 @@ func BenchmarkOsWrite(b *testing.B) {
 	}
 	defer f.Close()
 	defer os.Remove(name)
-	data := rndmessage(512)
+	data := rndmessage(testSize)
 	b.SetBytes(int64(len(data)))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		f.Write(data)
+	}
+}
+
+func BenchmarkRead(b *testing.B) {
+	testSize := pageSize / 8
+	name, err := rndfile(testSize)
+	if err != nil {
+		b.Fatal(err)
+	}
+	m, err := OpenFile(name, O_RDONLY, 0644)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer m.Close()
+	defer os.Remove(name)
+	data := make([]byte, testSize)
+	b.SetBytes(int64(len(data)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		m.Read(data)
+	}
+}
+
+func BenchmarkOSRead(b *testing.B) {
+	testSize := pageSize / 8
+	name, err := rndfile(testSize)
+	if err != nil {
+		b.Fatal(err)
+	}
+	f, err := os.OpenFile(name, O_RDONLY, 0644)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer f.Close()
+	defer os.Remove(name)
+	data := make([]byte, testSize)
+	b.SetBytes(int64(len(data)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		f.Read(data)
 	}
 }
