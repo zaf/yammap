@@ -1,6 +1,5 @@
-//go:build linux && (amd64 || arm64 || mips64 || mips64le || ppc64 || ppc64le || s390x)
-// +build linux
-// +build amd64 arm64 mips64 mips64le ppc64 ppc64le s390x
+//go:build linux && amd64
+// +build linux,amd64
 
 /*
 	Copyright (C) 2022, Lefteris Zafiris <zaf@fastmail.com>

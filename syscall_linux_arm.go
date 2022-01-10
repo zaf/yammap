@@ -1,6 +1,5 @@
-//go:build linux && (386 || arm || mips || mipsle)
-// +build linux
-// +build 386 arm mips mipsle
+//go:build linux && arm
+// +build linux,arm
 
 /*
 	Copyright (C) 2022, Lefteris Zafiris <zaf@fastmail.com>
@@ -12,10 +11,10 @@
 package yammap
 
 const (
-	SYS_MMAP   = 192
+	SYS_MMAP   = 192 // Using mmap2 to be able to map files larger than 2GB
 	SYS_MREMAP = 163
 	SYS_MUNMAP = 91
 	SYS_MSYNC  = 144
 
-	maxSize = 0xFFFFFFFFFFF // maximum allocation size, 2^44 bytes for x86 (using mmap2)
+	maxSize = 0xFFFFFFFFFFF // maximum allocation size, 2^44 bytes for 32bit CPUs (using mmap2)
 )
