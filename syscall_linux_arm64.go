@@ -1,5 +1,5 @@
-//go:build linux && amd64
-// +build linux,amd64
+//go:build linux && arm64
+// +build linux,arm64
 
 /*
 	Copyright (C) 2022, Lefteris Zafiris <zaf@fastmail.com>
@@ -16,5 +16,5 @@ const (
 	SYS_MUNMAP = 216
 	SYS_MSYNC  = 227
 
-	maxSize = 0xFFFFFFFFFFFF // maximum allocation size, 2^48 bytes for aarm64
+	maxSize = 0xFFFFFFFFFFFF // maximum allocation size, 2^48 bytes for arm64
 )
