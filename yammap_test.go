@@ -266,6 +266,85 @@ func TestReadAtWriteAt(t *testing.T) {
 	if !bytes.Equal(b, msg) {
 		t.Error("wrong data read")
 	}
+	m3, err := OpenFile(name, O_RDWR|O_APPEND, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = m3.WriteAt([]byte(msg), offset)
+	if err.Error() != "invalid use of WriteAt on file opened with O_APPEND" {
+		t.Error("allowed to write at offset in append mode")
+	}
+}
+
+func TestAppent(t *testing.T) {
+	name := tmpname()
+	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(name)
+	msg := rndmessage(pageSize * 2)
+	n, err := m.Write(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != len(msg) {
+		t.Error("wrong number of bytes written")
+	}
+	if m.offset != int64(len(msg)) {
+		t.Error("wrong offset after write")
+	}
+	err = m.Sync()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = m.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	m2, err := OpenFile(name, O_RDWR|O_APPEND, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err = m2.Write(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != len(msg) {
+		t.Error("wrong number of bytes written")
+	}
+	err = m2.Sync()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = m2.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m3, err := OpenFile(name, O_RDONLY, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := make([]byte, 2*len(msg))
+	n, err = m3.Read(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != len(b) {
+		t.Error("wrong number of bytes read")
+	}
+	if m3.offset != int64(2*len(msg)) {
+		t.Error("wrong offset after read")
+	}
+	err = m3.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	msg = append(msg, msg...)
+	if !bytes.Equal(b, msg) {
+		t.Error("wrong data read")
+	}
 }
 
 func BenchmarkWrite(b *testing.B) {

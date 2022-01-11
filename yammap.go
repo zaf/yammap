@@ -29,6 +29,7 @@ type Mmap struct {
 	fd     *os.File
 	offset int64
 	data   []byte
+	append bool
 }
 
 // pageSize is the size of a page in the system.
@@ -78,14 +79,17 @@ func OpenFile(name string, flag int, perm uint32) (*Mmap, error) {
 	}
 	m := new(Mmap)
 	m.fd = f
+	m.append = flag&O_APPEND != 0
 	stat, err := f.Stat()
 	if err != nil {
 		f.Close()
+		os.Remove(name)
 		return nil, err
 	}
 	err = m.mmap(stat.Size(), flag)
 	if err != nil {
 		f.Close()
+		os.Remove(name)
 		return nil, err
 	}
 	return m, nil
@@ -217,6 +221,9 @@ func (m *Mmap) Seek(offset int64, whence int) (int64, error) {
 // Write returns a non-nil error when n != len(b).
 func (m *Mmap) Write(b []byte) (n int, err error) {
 	m.Lock()
+	if m.append {
+		m.offset = int64(len(m.data))
+	}
 	if m.offset+int64(len(b)) > int64(len(m.data)) {
 		err = m.mremap(int64(len(m.data) * 2))
 		if err != nil {
@@ -236,6 +243,9 @@ func (m *Mmap) Write(b []byte) (n int, err error) {
 // WriteAt writes len(b) bytes to the File starting at byte offset off. It returns the number of bytes written and an error, if any.
 // WriteAt returns a non-nil error when n != len(b).
 func (m *Mmap) WriteAt(b []byte, off int64) (n int, err error) {
+	if m.append {
+		return 0, errors.New("invalid use of WriteAt on file opened with O_APPEND")
+	}
 	m.Lock()
 	if off+int64(len(b)) > int64(len(m.data)) {
 		err = m.mremap(int64(len(b) * 2))
