@@ -276,7 +276,7 @@ func TestReadAtWriteAt(t *testing.T) {
 	}
 }
 
-func TestAppent(t *testing.T) {
+func TestAppend(t *testing.T) {
 	name := tmpname()
 	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
 	if err != nil {
