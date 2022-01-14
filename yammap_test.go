@@ -96,21 +96,37 @@ func TestCreate(t *testing.T) {
 	}
 }
 
-func TestTurncate(t *testing.T) {
+func TestTruncate(t *testing.T) {
 	name := tmpname()
-	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
+	msg := rndmessage(pageSize * 2)
+	m, err := Create(name, int64(len(msg)), O_RDWR|O_CREATE, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer m.Close()
 	defer os.Remove(name)
-	newsize := int64(16384)
+	n, err := m.Write(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != len(msg) {
+		t.Error("wrong number of bytes written")
+	}
+	newsize := int64(pageSize)
 	err = m.Truncate(newsize)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if newsize != m.Size() {
-		t.Error("wrong size")
+		t.Error("wrong size when shrinking")
+	}
+	newsize = int64(4 * pageSize)
+	err = m.Truncate(newsize)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if newsize != m.Size() {
+		t.Error("wrong size when growing")
 	}
 	err = m.Close()
 	if err != nil {
