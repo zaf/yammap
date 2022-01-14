@@ -68,13 +68,17 @@ func TestOpenFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m.Close()
 	defer os.Remove(name)
+	size := m.Size()
+	err = m.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 	f, err := os.Stat(name)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.Size() != int64(pageSize) {
+	if f.Size() != size {
 		t.Fatal("wrong size of created file")
 	}
 }
@@ -85,13 +89,17 @@ func TestCreate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m.Close()
 	defer os.Remove(name)
+	size := m.Size()
+	err = m.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 	f, err := os.Stat(name)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.Size() != int64(pageSize) {
+	if f.Size() != size {
 		t.Fatal("wrong size of created file")
 	}
 }
@@ -132,6 +140,43 @@ func TestTruncate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	f, err := os.Stat(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Size() != newsize {
+		t.Error("wrong file size after closing")
+	}
+}
+
+func TestTruncateToZero(t *testing.T) {
+	name, err := rndfile(pageSize)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(name)
+	m, err := OpenFile(name, O_RDWR, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = m.Truncate(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Size() != 0 {
+		t.Error("wrong size when truncating to zero")
+	}
+	err = m.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Stat(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Size() != 0 {
+		t.Error("wrong file size after truncating to zero")
+	}
 }
 
 func TestName(t *testing.T) {
@@ -149,7 +194,7 @@ func TestName(t *testing.T) {
 
 func TestSeek(t *testing.T) {
 	name := tmpname()
-	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
+	m, err := Create(name, int64(pageSize), O_RDWR|O_CREATE, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,6 +363,7 @@ func TestAppend(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	m2, err := OpenFile(name, O_RDWR|O_APPEND, 0644)
 	if err != nil {
 		t.Fatal(err)
@@ -364,9 +410,9 @@ func TestAppend(t *testing.T) {
 }
 
 func BenchmarkWrite(b *testing.B) {
-	testSize := pageSize / 8
+	testSize := pageSize * 128
 	name := tmpname()
-	m, err := OpenFile(name, O_RDWR|O_CREATE, 0644)
+	m, err := Create(name, int64(testSize), O_RDWR|O_CREATE, 0644)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -377,11 +423,12 @@ func BenchmarkWrite(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		m.Write(data)
+		m.Seek(0, 0)
 	}
 }
 
 func BenchmarkOSWrite(b *testing.B) {
-	testSize := pageSize / 8
+	testSize := pageSize * 128
 	name := tmpname()
 	f, err := os.OpenFile(name, O_RDWR|O_CREATE, 0644)
 	if err != nil {
@@ -394,11 +441,12 @@ func BenchmarkOSWrite(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		f.Write(data)
+		f.Seek(0, 0)
 	}
 }
 
 func BenchmarkRead(b *testing.B) {
-	testSize := pageSize / 8
+	testSize := pageSize * 128
 	name, err := rndfile(testSize)
 	if err != nil {
 		b.Fatal(err)
@@ -414,11 +462,12 @@ func BenchmarkRead(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		m.Read(data)
+		m.Seek(0, 0)
 	}
 }
 
 func BenchmarkOSRead(b *testing.B) {
-	testSize := pageSize / 8
+	testSize := pageSize * 128
 	name, err := rndfile(testSize)
 	if err != nil {
 		b.Fatal(err)
@@ -434,5 +483,6 @@ func BenchmarkOSRead(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		f.Read(data)
+		f.Seek(0, 0)
 	}
 }
