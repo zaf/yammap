@@ -1,0 +1,9 @@
+golang:
+  stage: test
+  script:
+    - go get gotest.tools/gotestsum
+    - gotestsum --junitfile report.xml --format testname
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
