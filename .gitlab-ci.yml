@@ -1,4 +1,10 @@
-golang:
+default:
+  image: golang
+
+stages:
+  - test
+
+tests:
   stage: test
   script:
     - go get gotest.tools/gotestsum
