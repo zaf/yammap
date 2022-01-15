@@ -11,15 +11,6 @@ WIP - Don't use in production
 
 ```golang
 const (
-    SYS_MMAP   = 9
-    SYS_MREMAP = 25
-    SYS_MUNMAP = 11
-    SYS_MSYNC  = 26
-)
-```
-
-```golang
-const (
     // Exactly one of O_RDONLY, O_WRONLY, or O_RDWR must be specified.
     O_RDONLY = 0x0 // open the file read-only
     O_WRONLY = 0x1 // open the file write-only
@@ -49,6 +40,38 @@ const (
     SEEK_SET = 0x0 // seek relative to the origin of the file
     SEEK_CUR = 0x1 // seek relative to the current offset
     SEEK_END = 0x2 // seek relative to the end
+
+    // Mapping advice, refer to madvise(2) manual page.
+    MADV_NORMAL      = 0x0  // no special treatment.  This is the default.
+    MADV_RANDOM      = 0x1  // expect random page references.
+    MADV_SEQUENTIAL  = 0x2  // expect sequential page references.
+    MADV_WILLNEED    = 0x3  // will need these pages.
+    MADV_DONTNEED    = 0x4  // don't need these pages.
+    MADV_FREE        = 0x8  // pages can be freed.
+    MADV_REMOVE      = 0x9  // remove these pages from the mappings.
+    MADV_DONTFORK    = 0xa  // do not inherit across fork.
+    MADV_DOFORK      = 0xb  // inherit across fork.
+    MADV_MERGEABLE   = 0xc  // enable Kernel Samepage Merging (KSM) for the pages
+    MADV_UNMERGEABLE = 0xd  // disable Kernel Samepage Merging (KSM) for the pages
+    MADV_HUGEPAGE    = 0xe  // mark page for huge page support
+    MADV_NOHUGEPAGE  = 0xf  // mark page for no huge page support
+    MADV_DONTDUMP    = 0x10 // do not include in the core dump.
+    MADV_DODUMP      = 0x11 // include in the core dump.
+    MADV_WIPEONFORK  = 0x12 // discard contents on fork
+    MADV_KEEPONFORK  = 0x13 // keep contents on fork
+    MADV_COLD        = 0x14 // page is cold (not accessed in last hour).
+    MADV_PAGEOUT     = 0x15 // page is being paged out.
+)
+```
+
+```golang
+const (
+    SYS_MMAP      = 9
+    SYS_MREMAP    = 25
+    SYS_MUNMAP    = 11
+    SYS_MSYNC     = 26
+    SYS_FTRUNCATE = 77
+    SYS_MADVISE   = 28
 )
 ```
 
@@ -60,51 +83,57 @@ const (
 
 Mmap holds our in-memory file data
 
-#### func [Create](/yammap.go#L99)
+#### func [Create](/yammap.go#L71)
 
 `func Create(name string, size int64, flag int, perm uint32) (*Mmap, error)`
 
 Create creates the named file of specified size as memmory-mapped.
 
-#### func [OpenFile](/yammap.go#L75)
+#### func [OpenFile](/yammap.go#L44)
 
 `func OpenFile(name string, flag int, perm uint32) (*Mmap, error)`
 
 Open opens or creates the named file as memmory-mapped.
 
-#### func (*Mmap) [Close](/yammap.go#L115)
+#### func (*Mmap) [Close](/yammap.go#L88)
 
 `func (m *Mmap) Close() (err error)`
 
 Close closes the memory-mapped file, rendering it unusable for I/O.
 
-#### func (*Mmap) [Name](/yammap.go#L180)
+#### func (*Mmap) [Madvise](/yammap.go#L275)
+
+`func (m *Mmap) Madvise(advice int) error`
+
+Madvise advises the kernel about the expected behavior of the mapped pages.
+
+#### func (*Mmap) [Name](/yammap.go#L167)
 
 `func (m *Mmap) Name() string`
 
 Name returns the name of the file as presented to Open.
 
-#### func (*Mmap) [Offset](/yammap.go#L185)
+#### func (*Mmap) [Offset](/yammap.go#L172)
 
 `func (m *Mmap) Offset() int64`
 
 Offset returns the current offset.
 
-#### func (*Mmap) [Read](/yammap.go#L145)
+#### func (*Mmap) [Read](/yammap.go#L123)
 
 `func (m *Mmap) Read(b []byte) (n int, err error)`
 
 Read reads up to len(b) bytes from the File. It returns the number of bytes read and any error encountered.
 At end of file, Read returns 0, io.EOF.
 
-#### func (*Mmap) [ReadAt](/yammap.go#L158)
+#### func (*Mmap) [ReadAt](/yammap.go#L139)
 
 `func (m *Mmap) ReadAt(b []byte, off int64) (n int, err error)`
 
 ReadAt reads len(b) bytes from the File starting at byte offset off. It returns the number of bytes read and the error, if any.
 ReadAt always returns a non-nil error when n < len(b). At end of file, that error is io.EOF.
 
-#### func (*Mmap) [Seek](/yammap.go#L196)
+#### func (*Mmap) [Seek](/yammap.go#L183)
 
 `func (m *Mmap) Seek(offset int64, whence int) (int64, error)`
 
@@ -113,34 +142,37 @@ Seek sets the offset for the next Read or Write on file to offset, interpreted a
 1 means relative to the current offset,
 and 2 means relative to the end. It returns the new offset and an error, if any.
 
-#### func (*Mmap) [Size](/yammap.go#L172)
+#### func (*Mmap) [Size](/yammap.go#L156)
 
 `func (m *Mmap) Size() int64`
 
 Size returns the size of the file.
 
-#### func (*Mmap) [Sync](/yammap.go#L132)
+#### func (*Mmap) [Sync](/yammap.go#L107)
 
 `func (m *Mmap) Sync() (err error)`
 
 Sync flushes changes made to a file that was mapped into memory using mmap back to the filesystem.
 
-#### func (*Mmap) [Truncate](/yammap.go#L266)
+#### func (*Mmap) [Truncate](/yammap.go#L267)
 
 `func (m *Mmap) Truncate(size int64) error`
 
 Truncate changes the size of the file. It does not change the I/O offset.
 
-#### func (*Mmap) [Write](/yammap.go#L222)
+#### func (*Mmap) [Write](/yammap.go#L209)
 
 `func (m *Mmap) Write(b []byte) (n int, err error)`
 
 Write writes len(b) bytes to the File. It returns the number of bytes written and an error, if any.
 Write returns a non-nil error when n != len(b).
 
-#### func (*Mmap) [WriteAt](/yammap.go#L245)
+#### func (*Mmap) [WriteAt](/yammap.go#L240)
 
 `func (m *Mmap) WriteAt(b []byte, off int64) (n int, err error)`
 
 WriteAt writes len(b) bytes to the File starting at byte offset off. It returns the number of bytes written and an error, if any.
 WriteAt returns a non-nil error when n != len(b).
+
+---
+Readme created from Go doc with [goreadme](https://github.com/posener/goreadme)

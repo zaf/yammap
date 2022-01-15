@@ -104,6 +104,23 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+func TestMadvise(t *testing.T) {
+	name := tmpname()
+	m, err := Create(name, int64(pageSize), O_RDWR|O_CREATE, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(name)
+	err = m.Madvise(MADV_SEQUENTIAL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = m.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestTruncate(t *testing.T) {
 	name := tmpname()
 	msg := rndmessage(pageSize * 2)
@@ -418,6 +435,7 @@ func BenchmarkWrite(b *testing.B) {
 	}
 	defer m.Close()
 	defer os.Remove(name)
+	m.Madvise(MADV_SEQUENTIAL)
 	data := rndmessage(testSize)
 	b.SetBytes(int64(len(data)))
 	b.ResetTimer()
@@ -457,6 +475,7 @@ func BenchmarkRead(b *testing.B) {
 	}
 	defer m.Close()
 	defer os.Remove(name)
+	m.Madvise(MADV_SEQUENTIAL)
 	data := make([]byte, testSize)
 	b.SetBytes(int64(len(data)))
 	b.ResetTimer()

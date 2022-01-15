@@ -11,10 +11,12 @@
 package yammap
 
 const (
-	SYS_MMAP   = 222
-	SYS_MREMAP = 216
-	SYS_MUNMAP = 215
-	SYS_MSYNC  = 227
+	SYS_MMAP      = 222
+	SYS_MREMAP    = 216
+	SYS_MUNMAP    = 215
+	SYS_MSYNC     = 227
+	SYS_FTRUNCATE = 46
+	SYS_MADVISE   = 233
 
 	maxSize = 0xFFFFFFFFFFFF // maximum allocation size, 2^48 bytes for arm64
 )
