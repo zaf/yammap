@@ -295,6 +295,7 @@ type slice struct {
 
 // Map file to memory
 func (m *Mmap) mmap(size int64) error {
+	size = checkSizeLimit(size)
 	var protection int
 	mapping := MAP_SHARED | MAP_POPULATE
 	if m.flag&O_WRONLY != 0 {
@@ -332,6 +333,7 @@ func (m *Mmap) mmap(size int64) error {
 
 // Use mremap to increase the size of allocated memory
 func (m *Mmap) mremap(size int64) error {
+	size = checkSizeLimit(size)
 	if size == 0 {
 		addr := unsafe.Pointer(&m.data[0])
 		_, _, errno := unix.Syscall(SYS_MUNMAP, uintptr(addr), uintptr(len(m.data)), 0)
@@ -372,4 +374,11 @@ func (m *Mmap) truncate(length int64) error {
 		return fmt.Errorf("ftrunicate: %v", errno.Error())
 	}
 	return nil
+}
+
+func checkSizeLimit(size int64) int64 {
+	if size > maxSize {
+		return maxSize
+	}
+	return size
 }
