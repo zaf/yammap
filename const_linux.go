@@ -62,4 +62,6 @@ const (
 	MADV_KEEPONFORK  = 0x13 // keep contents on fork
 	MADV_COLD        = 0x14 // page is cold (not accessed in last hour).
 	MADV_PAGEOUT     = 0x15 // page is being paged out.
+
+	MS_SYNC = 0x4
 )

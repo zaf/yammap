@@ -18,9 +18,8 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"syscall"
 	"unsafe"
-
-	"golang.org/x/sys/unix"
 )
 
 // Mmap holds our in-memory file data
@@ -90,7 +89,7 @@ func (m *Mmap) Close() (err error) {
 	defer m.Unlock()
 	if m.data != nil {
 		addr := unsafe.Pointer(&m.data[0])
-		_, _, errno := unix.Syscall(SYS_MUNMAP, uintptr(addr), uintptr(len(m.data)), 0)
+		_, _, errno := syscall.Syscall(SYS_MUNMAP, uintptr(addr), uintptr(len(m.data)), 0)
 		if errno != 0 {
 			err = fmt.Errorf("munmap: %s", errno.Error())
 		}
@@ -111,7 +110,7 @@ func (m *Mmap) Sync() (err error) {
 		return nil
 	}
 	addr := unsafe.Pointer(&m.data[0])
-	_, _, errno := unix.Syscall(SYS_MSYNC, uintptr(addr), uintptr(len(m.data)), uintptr(unix.MS_SYNC))
+	_, _, errno := syscall.Syscall(SYS_MSYNC, uintptr(addr), uintptr(len(m.data)), uintptr(MS_SYNC))
 	if errno != 0 {
 		err = fmt.Errorf("msync: %s", errno.Error())
 	}
@@ -279,7 +278,7 @@ func (m *Mmap) Madvise(advice int) error {
 		return nil
 	}
 	addr := unsafe.Pointer(&m.data[0])
-	_, _, errno := unix.Syscall(SYS_MADVISE, uintptr(addr), uintptr(len(m.data)), uintptr(advice))
+	_, _, errno := syscall.Syscall(SYS_MADVISE, uintptr(addr), uintptr(len(m.data)), uintptr(advice))
 	if errno != 0 {
 		return fmt.Errorf("madvise: %s", errno.Error())
 	}
@@ -311,7 +310,7 @@ func (m *Mmap) mmap(size int64) error {
 			return err
 		}
 	}
-	mmapAddr, _, errno := unix.Syscall6(
+	mmapAddr, _, errno := syscall.Syscall6(
 		SYS_MMAP,
 		0,
 		uintptr(size),
@@ -336,7 +335,7 @@ func (m *Mmap) mremap(size int64) error {
 	size = checkSizeLimit(size)
 	if size == 0 {
 		addr := unsafe.Pointer(&m.data[0])
-		_, _, errno := unix.Syscall(SYS_MUNMAP, uintptr(addr), uintptr(len(m.data)), 0)
+		_, _, errno := syscall.Syscall(SYS_MUNMAP, uintptr(addr), uintptr(len(m.data)), 0)
 		if errno != 0 {
 			err := fmt.Errorf("munmap: %s", errno.Error())
 			return err
@@ -349,7 +348,7 @@ func (m *Mmap) mremap(size int64) error {
 		return err
 	}
 	header := (*slice)(unsafe.Pointer(&m.data))
-	mmapAddr, _, errno := unix.Syscall6(
+	mmapAddr, _, errno := syscall.Syscall6(
 		SYS_MREMAP,
 		uintptr(header.Data),
 		uintptr(header.Len),
@@ -369,7 +368,7 @@ func (m *Mmap) mremap(size int64) error {
 }
 
 func (m *Mmap) truncate(length int64) error {
-	_, _, errno := unix.Syscall(SYS_FTRUNCATE, uintptr(m.fd.Fd()), uintptr(length), 0)
+	_, _, errno := syscall.Syscall(SYS_FTRUNCATE, uintptr(m.fd.Fd()), uintptr(length), 0)
 	if errno != 0 {
 		return fmt.Errorf("ftrunicate: %v", errno.Error())
 	}
