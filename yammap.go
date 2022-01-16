@@ -28,7 +28,7 @@ type Mmap struct {
 	fd     *os.File
 	flag   int
 	offset int64
-	data   []byte
+	Data   []byte
 	append bool
 }
 
@@ -87,9 +87,9 @@ func Create(name string, size int64, flag int, perm uint32) (*Mmap, error) {
 func (m *Mmap) Close() (err error) {
 	m.Lock()
 	defer m.Unlock()
-	if m.data != nil {
-		addr := unsafe.Pointer(&m.data[0])
-		_, _, errno := syscall.Syscall(SYS_MUNMAP, uintptr(addr), uintptr(len(m.data)), 0)
+	if m.Data != nil {
+		addr := unsafe.Pointer(&m.Data[0])
+		_, _, errno := syscall.Syscall(SYS_MUNMAP, uintptr(addr), uintptr(len(m.Data)), 0)
 		if errno != 0 {
 			err = fmt.Errorf("munmap: %s", errno.Error())
 		}
@@ -106,11 +106,11 @@ func (m *Mmap) Close() (err error) {
 func (m *Mmap) Sync() (err error) {
 	m.Lock()
 	defer m.Unlock()
-	if m.data == nil {
+	if m.Data == nil {
 		return nil
 	}
-	addr := unsafe.Pointer(&m.data[0])
-	_, _, errno := syscall.Syscall(SYS_MSYNC, uintptr(addr), uintptr(len(m.data)), uintptr(MS_SYNC))
+	addr := unsafe.Pointer(&m.Data[0])
+	_, _, errno := syscall.Syscall(SYS_MSYNC, uintptr(addr), uintptr(len(m.Data)), uintptr(MS_SYNC))
 	if errno != 0 {
 		err = fmt.Errorf("msync: %s", errno.Error())
 	}
@@ -122,13 +122,13 @@ func (m *Mmap) Sync() (err error) {
 func (m *Mmap) Read(b []byte) (n int, err error) {
 	m.Lock()
 	defer m.Unlock()
-	if m.data == nil {
+	if m.Data == nil {
 		return 0, io.EOF
 	}
-	if m.offset >= int64(len(m.data)) {
+	if m.offset >= int64(len(m.Data)) {
 		return 0, io.EOF
 	}
-	n = copy(b, m.data[m.offset:])
+	n = copy(b, m.Data[m.offset:])
 	m.offset += int64(n)
 	return n, nil
 }
@@ -138,13 +138,13 @@ func (m *Mmap) Read(b []byte) (n int, err error) {
 func (m *Mmap) ReadAt(b []byte, off int64) (n int, err error) {
 	m.RLock()
 	defer m.RUnlock()
-	if m.data == nil {
+	if m.Data == nil {
 		return 0, io.EOF
 	}
-	if off >= int64(len(m.data)) {
+	if off >= int64(len(m.Data)) {
 		return 0, io.EOF
 	}
-	n = copy(b, m.data[off:])
+	n = copy(b, m.Data[off:])
 	if n < len(b) {
 		err = io.EOF
 	}
@@ -155,8 +155,8 @@ func (m *Mmap) ReadAt(b []byte, off int64) (n int, err error) {
 func (m *Mmap) Size() int64 {
 	var size int64
 	m.RLock()
-	if m.data != nil {
-		size = int64(len(m.data))
+	if m.Data != nil {
+		size = int64(len(m.Data))
 	}
 	m.RUnlock()
 	return size
@@ -189,14 +189,14 @@ func (m *Mmap) Seek(offset int64, whence int) (int64, error) {
 	case SEEK_CUR:
 		abs = m.offset + offset
 	case SEEK_END:
-		abs = int64(len(m.data)) + offset
+		abs = int64(len(m.Data)) + offset
 	default:
 		return 0, errors.New("invalid whence value")
 	}
 	if abs < 0 {
 		return 0, errors.New("negative position")
 	}
-	if abs > int64(len(m.data)) {
+	if abs > int64(len(m.Data)) {
 		return 0, errors.New("offset goes beyond the end of file")
 	}
 	m.offset = abs
@@ -207,7 +207,7 @@ func (m *Mmap) Seek(offset int64, whence int) (int64, error) {
 // Write returns a non-nil error when n != len(b).
 func (m *Mmap) Write(b []byte) (n int, err error) {
 	m.Lock()
-	if m.data == nil {
+	if m.Data == nil {
 		err = m.mmap(int64(len(b)))
 		if err != nil {
 			m.Unlock()
@@ -215,17 +215,17 @@ func (m *Mmap) Write(b []byte) (n int, err error) {
 		}
 	} else {
 		if m.append {
-			m.offset = int64(len(m.data))
+			m.offset = int64(len(m.Data))
 		}
-		if m.offset+int64(len(b)) > int64(len(m.data)) {
-			err = m.mremap(int64(len(m.data) + len(b)))
+		if m.offset+int64(len(b)) > int64(len(m.Data)) {
+			err = m.mremap(int64(len(m.Data) + len(b)))
 			if err != nil {
 				m.Unlock()
 				return 0, err
 			}
 		}
 	}
-	n = copy(m.data[m.offset:], b)
+	n = copy(m.Data[m.offset:], b)
 	m.offset += int64(n)
 	m.Unlock()
 	if n != len(b) {
@@ -241,20 +241,20 @@ func (m *Mmap) WriteAt(b []byte, off int64) (n int, err error) {
 		return 0, errors.New("invalid use of WriteAt on file opened with O_APPEND")
 	}
 	m.Lock()
-	if m.data == nil {
+	if m.Data == nil {
 		err = m.mmap(off + int64(len(b)))
 		if err != nil {
 			m.Unlock()
 			return 0, err
 		}
-	} else if off+int64(len(b)) > int64(len(m.data)) {
-		err = m.mremap(int64(len(m.data) + len(b)))
+	} else if off+int64(len(b)) > int64(len(m.Data)) {
+		err = m.mremap(int64(len(m.Data) + len(b)))
 		if err != nil {
 			m.Unlock()
 			return 0, err
 		}
 	}
-	n = copy(m.data[off:], b)
+	n = copy(m.Data[off:], b)
 	m.Unlock()
 	if n != len(b) {
 		err = io.ErrShortWrite
@@ -274,11 +274,11 @@ func (m *Mmap) Truncate(size int64) error {
 func (m *Mmap) Madvise(advice int) error {
 	m.RLock()
 	defer m.RUnlock()
-	if m.data == nil {
+	if m.Data == nil {
 		return nil
 	}
-	addr := unsafe.Pointer(&m.data[0])
-	_, _, errno := syscall.Syscall(SYS_MADVISE, uintptr(addr), uintptr(len(m.data)), uintptr(advice))
+	addr := unsafe.Pointer(&m.Data[0])
+	_, _, errno := syscall.Syscall(SYS_MADVISE, uintptr(addr), uintptr(len(m.Data)), uintptr(advice))
 	if errno != 0 {
 		return fmt.Errorf("madvise: %s", errno.Error())
 	}
@@ -322,7 +322,7 @@ func (m *Mmap) mmap(size int64) error {
 	if errno != 0 {
 		return fmt.Errorf("mmap: %s", errno.Error())
 	}
-	header := (*slice)(unsafe.Pointer(&m.data))
+	header := (*slice)(unsafe.Pointer(&m.Data))
 	header.Data = unsafe.Pointer(mmapAddr)
 	header.Cap = int(size)
 	header.Len = int(size)
@@ -334,20 +334,20 @@ func (m *Mmap) mmap(size int64) error {
 func (m *Mmap) mremap(size int64) error {
 	size = checkSizeLimit(size)
 	if size == 0 {
-		addr := unsafe.Pointer(&m.data[0])
-		_, _, errno := syscall.Syscall(SYS_MUNMAP, uintptr(addr), uintptr(len(m.data)), 0)
+		addr := unsafe.Pointer(&m.Data[0])
+		_, _, errno := syscall.Syscall(SYS_MUNMAP, uintptr(addr), uintptr(len(m.Data)), 0)
 		if errno != 0 {
 			err := fmt.Errorf("munmap: %s", errno.Error())
 			return err
 		}
-		m.data = nil
+		m.Data = nil
 		return m.truncate(size)
 	}
 	err := m.truncate(size)
 	if err != nil {
 		return err
 	}
-	header := (*slice)(unsafe.Pointer(&m.data))
+	header := (*slice)(unsafe.Pointer(&m.Data))
 	mmapAddr, _, errno := syscall.Syscall6(
 		SYS_MREMAP,
 		uintptr(header.Data),
