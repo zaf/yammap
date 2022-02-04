@@ -427,10 +427,10 @@ func TestAppend(t *testing.T) {
 }
 
 func TestBigFiles(t *testing.T) {
-	size := 1 << 33 // 8GB
+	var size int64 = 1 << 33 // 8GB
 	msg := rndmessage(pageSize)
 	name := tmpname()
-	m, err := Create(name, int64(size), O_RDWR|O_CREATE, 0644)
+	m, err := Create(name, size, O_RDWR|O_CREATE, 0644)
 	if err != nil {
 		t.Fatal("Failed to create large file", err)
 	}
@@ -444,7 +444,7 @@ func TestBigFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = m.Seek(int64(size-len(msg)), 0)
+	_, err = m.Seek(size-int64(len(msg)), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
