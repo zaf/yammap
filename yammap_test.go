@@ -426,6 +426,51 @@ func TestAppend(t *testing.T) {
 	}
 }
 
+func TestBigFiles(t *testing.T) {
+	size := 1 << 33 // 8GB
+	msg := rndmessage(pageSize)
+	name := tmpname()
+	m, err := Create(name, int64(size), O_RDWR|O_CREATE, 0644)
+	if err != nil {
+		t.Fatal("Failed to create large file", err)
+	}
+	defer m.Close()
+	defer os.Remove(name)
+	_, err = m.Write(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = m.Sync()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = m.Seek(int64(size-len(msg)), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = m.Write(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = m.Sync()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = m.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	m2, err := OpenFile(name, O_RDONLY, 0644)
+	if err != nil {
+		t.Fatal("Failed to open large file", err)
+	}
+	err = m2.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Remove(name)
+}
+
 func BenchmarkWrite(b *testing.B) {
 	testSize := pageSize * 128
 	name := tmpname()
