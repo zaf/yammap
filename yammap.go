@@ -17,6 +17,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"sync"
 	"syscall"
 	"unsafe"
@@ -121,9 +122,11 @@ func (m *Mmap) Read(b []byte) (n int, err error) {
 	if m.offset >= int64(len(m.Data)) {
 		return 0, io.EOF
 	}
-	n = copy(b, m.Data[m.offset:])
-	m.offset += int64(n)
-	return n, nil
+	n, err = safeCopy(b, m.Data[m.offset:])
+	if err == nil {
+		m.offset += int64(n)
+	}
+	return n, err
 }
 
 // ReadAt reads len(b) bytes from the File starting at byte offset off. It returns the number of bytes read and the error, if any.
@@ -137,8 +140,8 @@ func (m *Mmap) ReadAt(b []byte, off int64) (n int, err error) {
 	if off >= int64(len(m.Data)) {
 		return 0, io.EOF
 	}
-	n = copy(b, m.Data[off:])
-	if n < len(b) {
+	n, err = safeCopy(b, m.Data[off:])
+	if err == nil && n < len(b) {
 		err = io.EOF
 	}
 	return n, err
@@ -218,7 +221,11 @@ func (m *Mmap) Write(b []byte) (n int, err error) {
 			}
 		}
 	}
-	n = copy(m.Data[m.offset:], b)
+	n, err = safeCopy(m.Data[m.offset:], b)
+	if err != nil {
+		m.Unlock()
+		return n, err
+	}
 	m.offset += int64(n)
 	m.Unlock()
 	if n != len(b) {
@@ -247,9 +254,9 @@ func (m *Mmap) WriteAt(b []byte, off int64) (n int, err error) {
 			return 0, err
 		}
 	}
-	n = copy(m.Data[off:], b)
+	n, err = safeCopy(m.Data[off:], b)
 	m.Unlock()
-	if n != len(b) {
+	if err == nil && n != len(b) {
 		err = io.ErrShortWrite
 	}
 	return n, err
@@ -370,4 +377,16 @@ func (m *Mmap) truncate(length int64) error {
 		return fmt.Errorf("ftrunicate: %v", errno.Error())
 	}
 	return nil
+}
+
+func safeCopy(s, d []byte) (n int, err error) {
+	old := debug.SetPanicOnFault(true)
+	defer func() {
+		debug.SetPanicOnFault(old)
+		if recover() != nil {
+			err = fmt.Errorf("Page fault occurred while operting on mmaped file")
+		}
+	}()
+	n = copy(s, d)
+	return n, err
 }
