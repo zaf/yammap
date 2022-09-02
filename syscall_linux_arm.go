@@ -11,12 +11,12 @@
 package yammap
 
 const (
-	SYS_MMAP      = 192 // Using mmap2 to be able to map files larger than 2GB
+	SYS_MMAP      = 192
 	SYS_MREMAP    = 163
 	SYS_MUNMAP    = 91
 	SYS_MSYNC     = 144
-	SYS_FTRUNCATE = 93
+	SYS_FTRUNCATE = 194
 	SYS_MADVISE   = 220
 
-	maxSize = 0xFFFFFFFFFFF // maximum allocation size, 2^44 bytes for 32bit CPUs (using mmap2)
+	maxSize = 1 << 31 // maximum allocation size, 2GiB for 32bit CPUs
 )

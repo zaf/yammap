@@ -18,5 +18,5 @@ const (
 	SYS_FTRUNCATE = 77
 	SYS_MADVISE   = 28
 
-	maxSize = 0xFFFFFFFFFFFF // maximum allocation size, 2^48 bytes for x86_64
+	maxSize = 1 << 47 // maximum allocation size, 128TiB for x86_64
 )
