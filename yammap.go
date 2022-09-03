@@ -380,7 +380,7 @@ func (m *Mmap) truncate(length int64) error {
 	return nil
 }
 
-// Safely copy data without panicking on page faults. In cae of a page fault we return an error.
+// Safely copy data without panicking on page faults. In case of a page fault we return an error.
 func safeCopy(s, d []byte) (n int, err error) {
 	old := debug.SetPanicOnFault(true)
 	defer func() {
