@@ -19,3 +19,4 @@ const (
 	SYS_MADVISE   = 219
 
 	maxSize = 1 << 31 // maximum allocation size, 2GiB for 32bit CPUs
+)
