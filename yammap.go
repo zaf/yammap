@@ -371,6 +371,7 @@ func (m *Mmap) mremap(size int64) error {
 	return nil
 }
 
+// Truncate the file
 func (m *Mmap) truncate(length int64) error {
 	_, _, errno := syscall.Syscall(SYS_FTRUNCATE, uintptr(m.fd.Fd()), uintptr(length), 0)
 	if errno != 0 {
@@ -379,12 +380,13 @@ func (m *Mmap) truncate(length int64) error {
 	return nil
 }
 
+// Safely copy data without panicking on page faults. In cae of a page fault we return an error.
 func safeCopy(s, d []byte) (n int, err error) {
 	old := debug.SetPanicOnFault(true)
 	defer func() {
 		debug.SetPanicOnFault(old)
-		if recover() != nil {
-			err = fmt.Errorf("Page fault occurred while operting on mmaped file")
+		if e := recover(); e != nil {
+			err = fmt.Errorf("Page fault: %s", e)
 		}
 	}()
 	n = copy(s, d)
