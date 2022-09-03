@@ -427,7 +427,7 @@ func TestAppend(t *testing.T) {
 }
 
 func TestBigFiles(t *testing.T) {
-	var size int64 = 1 << 31 // 2GB
+	var size int64 = (1 << 31) - 1 // 2GB
 	msg := rndmessage(os.Getpagesize())
 	name := tmpname()
 	m, err := Create(name, size, O_RDWR|O_CREATE, 0644)

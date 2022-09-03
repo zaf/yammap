@@ -294,7 +294,7 @@ type slice struct {
 
 // Map file to memory
 func (m *Mmap) mmap(size int64) error {
-	if size > maxSize {
+	if size >= maxSize {
 		return fmt.Errorf("mmap: requested size bigger than arch maxSize")
 	}
 	var protection int
@@ -334,7 +334,7 @@ func (m *Mmap) mmap(size int64) error {
 
 // Use mremap to increase the size of allocated memory
 func (m *Mmap) mremap(size int64) error {
-	if size > maxSize {
+	if size >= maxSize {
 		return fmt.Errorf("mmap: requested size bigger than arch maxSize")
 	}
 	if size == 0 {

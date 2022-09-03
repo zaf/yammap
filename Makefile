@@ -13,6 +13,7 @@ SRC:="/usr/src/"
 CACHE_LOCAL:="$${HOME}/.cache/go-build/"
 CACHE:="/root/.cache/go-build/"
 
+export DOCKER_BUILDKIT=1
 
 test: ## Run tests for all supported platforms.
 test: test_linux_amd64 test_linux_386 test_linux_arm64 test_linux_arm
