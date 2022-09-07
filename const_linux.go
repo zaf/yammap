@@ -12,16 +12,6 @@ Package yammap provides an interface to memory mapped files.
 package yammap
 
 const (
-	// Exactly one of O_RDONLY, O_WRONLY, or O_RDWR must be specified.
-	O_RDONLY = 0x0 // open the file read-only
-	O_WRONLY = 0x1 // open the file write-only
-	O_RDWR   = 0x2 // open the file read-write
-	// The remaining values may be or'ed in to control behavior.
-	O_APPEND = 0x400    // append data to the file when writing
-	O_CREATE = 0x40     // create a new file if none exists
-	O_EXCL   = 0x80     // used with O_CREATE, file must not exist
-	O_SYNC   = 0x101000 // open for synchronous I/O
-	O_TRUNC  = 0x200    // truncate to zero length
 	// Page protections modes
 	PROT_NONE  = 0x0 // page protection: no access
 	PROT_READ  = 0x1 // page protection: read-only

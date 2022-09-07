@@ -1,5 +1,5 @@
-//go:build linux && mips64
-// +build linux,mips64
+//go:build linux && mips64le
+// +build linux,mips64le
 
 /*
 	Copyright (C) 2022, Lefteris Zafiris <zaf@fastmail.com>

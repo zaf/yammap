@@ -42,7 +42,7 @@ func OpenFile(name string, flag int, perm uint32) (*Mmap, error) {
 	m := new(Mmap)
 	m.fd = f
 	m.flag = flag
-	m.append = flag&O_APPEND != 0
+	m.append = flag&os.O_APPEND != 0
 	stat, err := f.Stat()
 	if err != nil {
 		f.Close()
@@ -299,9 +299,9 @@ func (m *Mmap) mmap(size int64) error {
 	}
 	var protection int
 	mapping := MAP_SHARED | MAP_POPULATE
-	if m.flag&O_WRONLY != 0 {
+	if m.flag&os.O_WRONLY != 0 {
 		protection = PROT_READ | PROT_WRITE
-	} else if m.flag&O_RDWR != 0 {
+	} else if m.flag&os.O_RDWR != 0 {
 		protection = PROT_READ | PROT_WRITE
 	} else {
 		protection = PROT_READ

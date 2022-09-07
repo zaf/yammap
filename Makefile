@@ -16,7 +16,7 @@ CACHE:="/root/.cache/go-build/"
 export DOCKER_BUILDKIT=1
 
 test: ## Run tests for all supported platforms.
-test: test_linux_amd64 test_linux_386 test_linux_arm64 test_linux_arm
+test: test_linux_amd64 test_linux_386 test_linux_arm64 test_linux_arm test_linux_mips64le
 
 test_linux_amd64:
 	@echo "== Testing Linux/amd64 =="
@@ -38,7 +38,12 @@ test_linux_arm:
 	@docker pull --platform=linux/arm/v7 golang
 	-@docker run --rm -w ${SRC} --platform=linux/arm/v7 --mount type=bind,source="${SRC_LOCAL}",target=${SRC} --mount type=bind,source=${CACHE_LOCAL},target=${CACHE} golang go test
 
+test_linux_mips64le:
+	@echo "== Testingh Linux/mips64le =="
+	@docker pull --platform=linux/mips64le golang
+	-@docker run --rm -w ${SRC} --platform=linux/mips64le --mount type=bind,source="${SRC_LOCAL}",target=${SRC} --mount type=bind,source=${CACHE_LOCAL},target=${CACHE} golang go test -v
+
 help: ## Show this help.
 	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#'
 
-.PHONY: test test_linux_386 test_linux_amd64 test_linux_arm test_linux_arm64 help
+.PHONY: test test_linux_386 test_linux_amd64 test_linux_arm test_linux_arm64 test_linux_mips64le help
