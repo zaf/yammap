@@ -15,33 +15,29 @@ CACHE:="/root/.cache/go-build/"
 
 export DOCKER_BUILDKIT=1
 
+define run-test =
+	@echo "== Testing $(1) =="
+	@docker pull --platform=$(1) golang > /dev/null
+	-@docker run --rm -w ${SRC} --platform=$(1) --mount type=bind,source="${SRC_LOCAL}",target=${SRC} --mount type=bind,source=${CACHE_LOCAL},target=${CACHE} golang go test
+endef
+
 test: ## Run tests for all supported platforms.
 test: test_linux_amd64 test_linux_386 test_linux_arm64 test_linux_arm test_linux_mips64le
 
-test_linux_amd64:
-	@echo "== Testing Linux/amd64 =="
-	@docker pull --platform=linux/amd64 golang
-	-@docker run --rm -w ${SRC} --platform=linux/amd64 --mount type=bind,source="${SRC_LOCAL}",target=${SRC} --mount type=bind,source=${CACHE_LOCAL},target=${CACHE} golang go test
+test_linux_amd64: ## Run tests for linux/amd64
+	$(call run-test,linux/amd64)
 
-test_linux_386:
-	@echo "== Testing Linux/386 =="
-	@docker pull --platform=linux/386 golang
-	-@docker run --rm -w ${SRC} --platform=linux/386 --mount type=bind,source="${SRC_LOCAL}",target=${SRC} --mount type=bind,source=${CACHE_LOCAL},target=${CACHE} golang go test
+test_linux_386: ## Run tests for linux/386
+	$(call run-test,linux/386)
 
-test_linux_arm64:
-	@echo "== Testing Linux/arm64 =="
-	@docker pull --platform=linux/arm64 golang
-	-@docker run --rm -w ${SRC} --platform=linux/arm64 --mount type=bind,source="${SRC_LOCAL}",target=${SRC} --mount type=bind,source=${CACHE_LOCAL},target=${CACHE} golang go test
+test_linux_arm64: ## Run tests for linux/arm64
+	$(call run-test,linux/arm64)
 
-test_linux_arm:
-	@echo "== Testingh Linux/arm =="
-	@docker pull --platform=linux/arm/v7 golang
-	-@docker run --rm -w ${SRC} --platform=linux/arm/v7 --mount type=bind,source="${SRC_LOCAL}",target=${SRC} --mount type=bind,source=${CACHE_LOCAL},target=${CACHE} golang go test
+test_linux_arm: ## Run tests for linux/arm
+	$(call run-test,linux/arm/v7)
 
-test_linux_mips64le:
-	@echo "== Testingh Linux/mips64le =="
-	@docker pull --platform=linux/mips64le golang
-	-@docker run --rm -w ${SRC} --platform=linux/mips64le --mount type=bind,source="${SRC_LOCAL}",target=${SRC} --mount type=bind,source=${CACHE_LOCAL},target=${CACHE} golang go test -v
+test_linux_mips64le: ## Run tests for linux/mips64le
+	$(call run-test,linux/mips64le)
 
 help: ## Show this help.
 	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#'
