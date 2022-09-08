@@ -14,7 +14,7 @@ jobs:
     - name: Install packages
       run: |
         sudo apt-get update
-        sudo apt-get install -y docker.io qemu binfmt-support qemu-user-static
+        sudo apt-get install -y qemu binfmt-support qemu-user-static
     - name: Testing on amd64
       run: |
         sudo docker docker pull --platform=linux/amd64
