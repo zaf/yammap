@@ -17,9 +17,9 @@ jobs:
         sudo apt-get install -y qemu binfmt-support qemu-user-static
     - name: Testing on amd64
       run: |
-        sudo docker docker pull --platform=linux/amd64
-        sudo run --rm --platform=linux/amd64 hello-world
+        sudo docker pull --platform=linux/amd64
+        sudo docker run --rm --platform=linux/amd64 hello-world
     - name: Testing on arm64
       run: |
-        sudo docker docker pull --platform=linux/arm64
-        sudo run --rm --platform=linux/arm64 hello-world
+        sudo docker pull --platform=linux/arm64
+        sudo docker run --rm --platform=linux/arm64 hello-world
