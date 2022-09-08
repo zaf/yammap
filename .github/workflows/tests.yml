@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Install packages
@@ -17,9 +17,9 @@ jobs:
         sudo apt-get install -y qemu binfmt-support qemu-user-static
     - name: Testing on amd64
       run: |
-        sudo docker pull --platform=linux/amd64 hello-world
-        sudo docker run --rm --platform=linux/amd64 hello-world
+        sudo docker pull --platform=linux/amd64 golang
+        sudo docker run --rm --platform=linux/amd64 -w /usr/src/ --mount type=bind,source="${GITHUB_WORKSPACE}",target=/usr/src/ golang go test -v
     - name: Testing on arm64
       run: |
-        sudo docker pull --platform=linux/arm64 hello-world
-        sudo docker run --rm --platform=linux/arm64 hello-world
+        sudo docker pull --platform=linux/arm64 golang
+        sudo docker run --rm --platform=linux/arm64 -w /usr/src/ --mount type=bind,source="${GITHUB_WORKSPACE}",target=/usr/src/ golang go test -v
