@@ -14,8 +14,8 @@ jobs:
       run: sudo apt-get install -y docker.io qemu binfmt-support qemu-user-static
     - uses: actions/checkout@v3
     - name: Testing on amd64
-      run: sudo docker docker pull --platform=linux/amd64
-      run: sudo run --rm --platform=linux/amd64 hello-world
+    - run: sudo docker docker pull --platform=linux/amd64
+    - run: sudo run --rm --platform=linux/amd64 hello-world
     - name: Testing on arm64
-      run: sudo docker docker pull --platform=linux/arm64
-      run: sudo run --rm --platform=linux/arm64 hello-world
+    - run: sudo docker docker pull --platform=linux/arm64
+    - run: sudo run --rm --platform=linux/arm64 hello-world
