@@ -13,7 +13,7 @@ package yammap
 const (
 	SYS_MMAP      = 192
 	SYS_MREMAP    = 163
-	SYS_MUNMAP    = 910
+	SYS_MUNMAP    = 91
 	SYS_MSYNC     = 144
 	SYS_FTRUNCATE = 194 // Using ftruncate64
 	SYS_MADVISE   = 219
