@@ -51,14 +51,12 @@ func OpenFile(name string, flag int, perm uint32) (*Mmap, error) {
 	stat, err := f.Stat()
 	if err != nil {
 		f.Close()
-		os.Remove(name)
 		return nil, err
 	}
 	if stat.Size() > 0 {
 		err = m.mmap(stat.Size())
 		if err != nil {
 			f.Close()
-			os.Remove(name)
 			return nil, err
 		}
 	}
