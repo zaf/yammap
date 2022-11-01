@@ -301,7 +301,7 @@ func (m *Mmap) mmap(size int64) error {
 		return fmt.Errorf("mmap: requested size bigger than arch maxSize")
 	}
 	var protection int
-	mapping := MAP_SHARED | MAP_POPULATE
+	mapping := MAP_SHARED
 	if m.flag&os.O_WRONLY != 0 {
 		protection = PROT_READ | PROT_WRITE
 	} else if m.flag&os.O_RDWR != 0 {
