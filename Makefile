@@ -10,7 +10,7 @@
 SRC_LOCAL:=$(shell pwd)
 SRC:="/usr/src/"
 
-CACHE_LOCAL:="$${HOME}/.cache/go-build/"
+CACHE_LOCAL:=$(shell go env GOCACHE)
 CACHE:="/root/.cache/go-build/"
 
 export DOCKER_BUILDKIT=1
