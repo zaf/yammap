@@ -33,11 +33,6 @@ type Mmap struct {
 	append bool
 }
 
-// Set runtime to panic instead of crashing on page faults.
-func init() {
-	debug.SetPanicOnFault(true)
-}
-
 // Open opens or creates the named file as memory-mapped.
 func OpenFile(name string, flag int, perm uint32) (*Mmap, error) {
 	f, err := os.OpenFile(name, flag, os.FileMode(perm))
@@ -383,11 +378,12 @@ func (m *Mmap) truncate(length int64) error {
 	return nil
 }
 
-// Safely copy data without panicking on page faults. In case of a page fault we return an error.
+// Safely copy data without panicking on bus errors.
 func safeCopy(s, d []byte) (n int, err error) {
+	debug.SetPanicOnFault(true)
 	defer func() {
 		if e := recover(); e != nil {
-			err = fmt.Errorf("Page fault: %s", e)
+			err = fmt.Errorf("bus error: %s", e)
 		}
 	}()
 	n = copy(s, d)
