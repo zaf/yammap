@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"runtime/debug"
 	"sync"
 	"syscall"
@@ -283,13 +282,6 @@ func (m *Mmap) Madvise(advice int) error {
 	return nil
 }
 
-// slice is the runtime representation of a Go slice.
-type slice struct {
-	Data unsafe.Pointer
-	Len  int
-	Cap  int
-}
-
 // Map file to memory
 func (m *Mmap) mmap(size int64) error {
 	if size >= maxSize {
@@ -322,11 +314,7 @@ func (m *Mmap) mmap(size int64) error {
 	if errno != 0 {
 		return fmt.Errorf("mmap: %s", errno.Error())
 	}
-	header := (*slice)(unsafe.Pointer(&m.Data))
-	header.Data = unsafe.Pointer(mmapAddr)
-	header.Cap = int(size)
-	header.Len = int(size)
-	runtime.KeepAlive(mmapAddr)
+	m.Data = unsafe.Slice((*byte)(unsafe.Pointer(mmapAddr)), size)
 	return nil
 }
 
@@ -349,11 +337,11 @@ func (m *Mmap) mremap(size int64) error {
 	if err != nil {
 		return err
 	}
-	header := (*slice)(unsafe.Pointer(&m.Data))
+	addr := unsafe.Pointer(&m.Data[0])
 	mmapAddr, _, errno := syscall.Syscall6(
 		SYS_MREMAP,
-		uintptr(header.Data),
-		uintptr(header.Len),
+		uintptr(addr),
+		uintptr(len(m.Data)),
 		uintptr(size),
 		uintptr(MREMAP_MAYMOVE),
 		0,
@@ -362,10 +350,7 @@ func (m *Mmap) mremap(size int64) error {
 	if errno != 0 {
 		return fmt.Errorf("mremap: %v", errno.Error())
 	}
-	header.Data = unsafe.Pointer(mmapAddr)
-	header.Cap = int(size)
-	header.Len = int(size)
-	runtime.KeepAlive(mmapAddr)
+	m.Data = unsafe.Slice((*byte)(unsafe.Pointer(mmapAddr)), size)
 	return nil
 }
 
