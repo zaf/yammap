@@ -79,7 +79,7 @@ func (m *Mmap) Close() (err error) {
 	m.Lock()
 	defer m.Unlock()
 	if m.Data != nil {
-		addr := unsafe.Pointer(&m.Data[0])
+		addr := unsafe.Pointer(unsafe.SliceData(m.Data))
 		_, _, errno := syscall.Syscall(SYS_MUNMAP, uintptr(addr), uintptr(len(m.Data)), 0)
 		if errno != 0 {
 			err = fmt.Errorf("munmap: %s", errno.Error())
@@ -100,7 +100,7 @@ func (m *Mmap) Sync() (err error) {
 	if m.Data == nil {
 		return nil
 	}
-	addr := unsafe.Pointer(&m.Data[0])
+	addr := unsafe.Pointer(unsafe.SliceData(m.Data))
 	_, _, errno := syscall.Syscall(SYS_MSYNC, uintptr(addr), uintptr(len(m.Data)), uintptr(MS_SYNC))
 	if errno != 0 {
 		err = fmt.Errorf("msync: %s", errno.Error())
@@ -274,7 +274,7 @@ func (m *Mmap) Madvise(advice int) error {
 	if m.Data == nil {
 		return nil
 	}
-	addr := unsafe.Pointer(&m.Data[0])
+	addr := unsafe.Pointer(unsafe.SliceData(m.Data))
 	_, _, errno := syscall.Syscall(SYS_MADVISE, uintptr(addr), uintptr(len(m.Data)), uintptr(advice))
 	if errno != 0 {
 		return fmt.Errorf("madvise: %s", errno.Error())
@@ -323,8 +323,8 @@ func (m *Mmap) mremap(size int64) error {
 	if size >= maxSize {
 		return fmt.Errorf("mmap: requested size bigger than arch maxSize")
 	}
+	addr := unsafe.Pointer(unsafe.SliceData(m.Data))
 	if size == 0 {
-		addr := unsafe.Pointer(&m.Data[0])
 		_, _, errno := syscall.Syscall(SYS_MUNMAP, uintptr(addr), uintptr(len(m.Data)), 0)
 		if errno != 0 {
 			err := fmt.Errorf("munmap: %s", errno.Error())
@@ -337,7 +337,6 @@ func (m *Mmap) mremap(size int64) error {
 	if err != nil {
 		return err
 	}
-	addr := unsafe.Pointer(&m.Data[0])
 	mmapAddr, _, errno := syscall.Syscall6(
 		SYS_MREMAP,
 		uintptr(addr),
