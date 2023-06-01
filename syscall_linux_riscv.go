@@ -18,5 +18,5 @@ const (
 	SYS_FTRUNCATE = 46
 	SYS_MADVISE   = 233
 
-	maxSize = 1 << 31 // maximum allocation size, 2GiB for 32bit CPUs
+	maxSize = (1 << 31) - 1 // maximum allocation size, 2GiB for 32bit CPUs
 )

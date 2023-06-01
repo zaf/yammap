@@ -18,5 +18,5 @@ const (
 	SYS_FTRUNCATE = 5075
 	SYS_MADVISE   = 5027
 
-	maxSize = 1 << 47 // maximum allocation size, 128TiB for 64bit CPUs
+	maxSize = (1 << 47) - 1 // maximum allocation size, 128TiB for 64bit CPUs
 )

@@ -18,5 +18,5 @@ const (
 	SYS_FTRUNCATE = 46
 	SYS_MADVISE   = 233
 
-	maxSize = 1 << 47 // maximum allocation size, 128TiB for arm64
+	maxSize = (1 << 47) - 1 // maximum allocation size, 128TiB for arm64
 )
