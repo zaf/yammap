@@ -68,63 +68,63 @@ const (
 
 ## Types
 
-### type [Mmap](https://github.com/zaf/yammap/blob/main/yammap.go#L27)
+### type [Mmap](/yammap.go#L26)
 
 `type Mmap struct { ... }`
 
 Mmap holds our in-memory file data
 
-#### func [Create](https://github.com/zaf/yammap/blob/main/yammap.go#L64)
+#### func [Create](/yammap.go#L61)
 
 `func Create(name string, size int64, flag int, perm uint32) (*Mmap, error)`
 
 Create creates the named file of specified size as memmory-mapped.
 
-#### func [OpenFile](https://github.com/zaf/yammap/blob/main/yammap.go#L37)
+#### func [OpenFile](/yammap.go#L36)
 
 `func OpenFile(name string, flag int, perm uint32) (*Mmap, error)`
 
 Open opens or creates the named file as memory-mapped.
 
-#### func (*Mmap) [Close](https://github.com/zaf/yammap/blob/main/yammap.go#L81)
+#### func (*Mmap) [Close](/yammap.go#L78)
 
 `func (m *Mmap) Close() (err error)`
 
 Close closes the memory-mapped file, rendering it unusable for I/O.
 
-#### func (*Mmap) [Madvise](https://github.com/zaf/yammap/blob/main/yammap.go#L274)
+#### func (*Mmap) [Madvise](/yammap.go#L271)
 
 `func (m *Mmap) Madvise(advice int) error`
 
 Madvise advise the kernel about the expected behavior of the mapped pages.
 
-#### func (*Mmap) [Name](https://github.com/zaf/yammap/blob/main/yammap.go#L162)
+#### func (*Mmap) [Name](/yammap.go#L159)
 
 `func (m *Mmap) Name() string`
 
 Name returns the name of the file as presented to Open.
 
-#### func (*Mmap) [Offset](https://github.com/zaf/yammap/blob/main/yammap.go#L167)
+#### func (*Mmap) [Offset](/yammap.go#L164)
 
 `func (m *Mmap) Offset() int64`
 
 Offset returns the current offset.
 
-#### func (*Mmap) [Read](https://github.com/zaf/yammap/blob/main/yammap.go#L116)
+#### func (*Mmap) [Read](/yammap.go#L113)
 
 `func (m *Mmap) Read(b []byte) (n int, err error)`
 
 Read reads up to len(b) bytes from the File. It returns the number of bytes read and any error encountered.
 At end of file, Read returns 0, io.EOF.
 
-#### func (*Mmap) [ReadAt](https://github.com/zaf/yammap/blob/main/yammap.go#L134)
+#### func (*Mmap) [ReadAt](/yammap.go#L131)
 
 `func (m *Mmap) ReadAt(b []byte, off int64) (n int, err error)`
 
 ReadAt reads len(b) bytes from the File starting at byte offset off. It returns the number of bytes read and the error, if any.
 ReadAt always returns a non-nil error when n < len(b). At end of file, that error is io.EOF.
 
-#### func (*Mmap) [Seek](https://github.com/zaf/yammap/blob/main/yammap.go#L178)
+#### func (*Mmap) [Seek](/yammap.go#L175)
 
 `func (m *Mmap) Seek(offset int64, whence int) (int64, error)`
 
@@ -133,34 +133,35 @@ Seek sets the offset for the next Read or Write on file to offset, interpreted a
 1 means relative to the current offset,
 and 2 means relative to the end. It returns the new offset and an error, if any.
 
-#### func (*Mmap) [Size](https://github.com/zaf/yammap/blob/main/yammap.go#L151)
+#### func (*Mmap) [Size](/yammap.go#L148)
 
 `func (m *Mmap) Size() int64`
 
 Size returns the size of the file.
 
-#### func (*Mmap) [Sync](https://github.com/zaf/yammap/blob/main/yammap.go#L100)
+#### func (*Mmap) [Sync](/yammap.go#L97)
 
 `func (m *Mmap) Sync() (err error)`
 
 Sync flushes changes made to a file that was mapped into memory using mmap back to the filesystem.
 
-#### func (*Mmap) [Truncate](https://github.com/zaf/yammap/blob/main/yammap.go#L266)
+#### func (*Mmap) [Truncate](/yammap.go#L263)
 
 `func (m *Mmap) Truncate(size int64) error`
 
 Truncate changes the size of the file. It does not change the I/O offset.
 
-#### func (*Mmap) [Write](https://github.com/zaf/yammap/blob/main/yammap.go#L204)
+#### func (*Mmap) [Write](/yammap.go#L201)
 
 `func (m *Mmap) Write(b []byte) (n int, err error)`
 
 Write writes len(b) bytes to the File. It returns the number of bytes written and an error, if any.
 Write returns a non-nil error when n != len(b).
 
-#### func (*Mmap) [WriteAt](https://github.com/zaf/yammap/blob/main/yammap.go#L239)
+#### func (*Mmap) [WriteAt](/yammap.go#L236)
 
 `func (m *Mmap) WriteAt(b []byte, off int64) (n int, err error)`
 
 WriteAt writes len(b) bytes to the File starting at byte offset off. It returns the number of bytes written and an error, if any.
 WriteAt returns a non-nil error when n != len(b).
+
